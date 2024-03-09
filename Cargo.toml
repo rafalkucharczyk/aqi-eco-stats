@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "fetch_data",
+    "test_app",
+]
+resolver = "2"
