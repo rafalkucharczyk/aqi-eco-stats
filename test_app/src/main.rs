@@ -1,4 +1,4 @@
-use fetch_data;
+
 
 #[tokio::main]
 async fn main() {

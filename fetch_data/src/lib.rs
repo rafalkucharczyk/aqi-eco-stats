@@ -1,13 +1,10 @@
 mod json_structs;
+use crate::json_structs::deserializable::{parse_json, Location, SensorData};
 
 use std::cmp::Ordering;
 
-use futures;
-use reqwest;
 
-use crate::json_structs::deserializable::{parse_json, Location, SensorData};
-
-static BASE_URL: &'static str = "https://trzebnica.aqi.eco/pl";
+static BASE_URL: &str = "https://trzebnica.aqi.eco/pl";
 
 async fn get_url_text(url: &str) -> Result<String, reqwest::Error> {
     println!("{}", url);
@@ -48,12 +45,11 @@ async fn get_sensor_data() -> Vec<String> {
 pub async fn get_data() -> Option<f32> {
     let sensors_data = get_sensor_data().await;
 
-    parse_json::<SensorData>(&sensors_data.first().unwrap())
+    parse_json::<SensorData>(sensors_data.first().unwrap())
         .data
         .pm25
         .into_iter()
-        .filter(|x| x.1.is_some())
-        .map(|x| x.1.unwrap())
+        .filter_map(|x| x.1)
         .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
 }
 
