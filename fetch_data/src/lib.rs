@@ -1,30 +1,19 @@
-use std::{cmp::Ordering, collections::HashMap};
+mod json_structs;
+
+use std::cmp::Ordering;
 
 use futures;
 use reqwest;
-use serde::{Deserialize, Serialize};
+
+use crate::json_structs::deserializable::{parse_json, Location, SensorData};
 
 static BASE_URL: &'static str = "https://trzebnica.aqi.eco/pl";
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Location {
-    path: String,
-    description: String,
-}
 
 async fn get_url_text(url: &str) -> Result<String, reqwest::Error> {
     println!("{}", url);
     let body = reqwest::get(url).await?.text().await?;
 
     Ok(body)
-}
-
-fn parse_json<'a, T>(json: &'a str) -> T
-where
-    T: Deserialize<'a> + Default,
-{
-    let data: T = serde_json::from_str(json).unwrap_or_default();
-    data
 }
 
 async fn get_locations() -> Vec<Location> {
@@ -54,19 +43,6 @@ async fn get_sensor_data() -> Vec<String> {
         .iter()
         .map(|x| String::from(x.as_ref().unwrap()))
         .collect()
-}
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct ParticlesData {
-    pm10: HashMap<u32, Option<f32>>,
-    pm25: HashMap<u32, Option<f32>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct SensorData {
-    start: u32,
-    end: u32,
-    data: ParticlesData,
 }
 
 pub async fn get_data() -> Option<f32> {
