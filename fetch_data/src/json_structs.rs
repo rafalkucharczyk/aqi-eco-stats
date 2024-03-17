@@ -26,3 +26,27 @@ pub mod deserializable {
         data
     }
 }
+
+pub mod serializable {
+    use serde::Serialize;
+
+    #[derive(Serialize, Debug, Default)]
+    pub struct MeasurementMinMax {
+        pub min: f32,
+        pub max: f32,
+    }
+
+    #[derive(Serialize, Debug, Default)]
+    pub struct LocationMinMax {
+        pub name: String,
+        pub pm25: MeasurementMinMax,
+        pub pm10: MeasurementMinMax,
+    }
+
+    #[derive(Serialize, Debug, Default)]
+    pub struct WeeklyStats {
+        pub start: u32,
+        pub end: u32,
+        pub locations: Vec<LocationMinMax>,
+    }
+}
