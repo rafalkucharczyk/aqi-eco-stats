@@ -6,7 +6,9 @@ pub mod deserializable {
     #[derive(Deserialize, Debug)]
     pub struct Location {
         pub path: String,
+        pub description: String,
     }
+
     #[derive(Deserialize, Debug, Default)]
     pub struct ParticlesData {
         pub pm10: HashMap<u32, Option<f32>>,
@@ -15,6 +17,8 @@ pub mod deserializable {
 
     #[derive(Deserialize, Debug, Default)]
     pub struct SensorData {
+        pub start: u32,
+        pub end: u32,
         pub data: ParticlesData,
     }
 
@@ -39,6 +43,8 @@ pub mod serializable {
     #[derive(Serialize, Debug, Default)]
     pub struct LocationMinMax {
         pub name: String,
+        pub start_date: u32,
+        pub end_date: u32,
         pub pm25: MeasurementMinMax,
         pub pm10: MeasurementMinMax,
     }
