@@ -113,12 +113,43 @@ pub async fn get_weekly_stats(base_url: &str) -> WeeklyStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockito;
+    use serde_json::json;
 
     #[tokio::test]
-    async fn it_works() {
-        static BASE_URL: &str = "https://trzebnica.aqi.eco/pl";
+    async fn get_weekly_stats_when_valid_data_is_fetched_then_returns_correct_result() {
+        let mut server = mockito::Server::new_async().await;
+        let url = server.url();
 
-        get_weekly_stats(BASE_URL).await;
-        assert!(true);
+        let mock_data_json = server
+            .mock("GET", "/map/data.json")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(json!([{"description": "foobar", "path": "/foo/bar"}]).to_string())
+            .create_async()
+            .await;
+
+        let mock_graph_data_json = server
+            .mock("GET", "/foo/bar/graph_data.json?type=pm&range=week&ma_h=24")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(json!({"start": 1, "end": 2, "data":{"pm10":{"1": 10.5, "2": 14.5}, "pm25":{"1": 13.2, "2": 3.4}}}).to_string())
+            .create_async().await;
+
+        let result = get_weekly_stats(&url).await;
+
+        mock_data_json.assert_async().await;
+        mock_graph_data_json.assert_async().await;
+
+        assert_eq!(result.start, 1);
+        assert_eq!(result.end, 2);
+        assert_eq!(result.locations.len(), 1);
+
+        let first_location = result.locations.first().unwrap();
+        assert_eq!(first_location.name, String::from("foobar"));
+        assert_eq!(first_location.pm10.min, 10.5);
+        assert_eq!(first_location.pm10.max, 14.5);
+        assert_eq!(first_location.pm25.min, 3.4);
+        assert_eq!(first_location.pm25.max, 13.2);
     }
 }
