@@ -9,16 +9,10 @@ env:
 
 jobs:
   build_and_test:
-    name: Rust project - latest
+    name: Verify ${{ github.sha }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - run: |
+          cargo build
+          cargo test
