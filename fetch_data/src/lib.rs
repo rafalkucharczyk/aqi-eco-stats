@@ -1,4 +1,5 @@
 mod json_structs;
+
 use crate::json_structs::deserializable::{parse_json, Location, SensorData};
 use crate::json_structs::serializable::{LocationMinMax, MeasurementMinMax, WeeklyStats};
 
@@ -76,21 +77,26 @@ pub async fn get_weekly_stats(base_url: &str) -> WeeklyStats {
 
     let locations: Vec<LocationMinMax> = sensors_raw_data
         .iter()
-        .map(|x| {
-            let sensor_data = parse_json::<SensorData>(&x.json);
-            let data = sensor_data.data;
-            LocationMinMax {
-                name: String::from(&x.name),
-                start_date: sensor_data.start,
-                end_date: sensor_data.end,
-                pm25: MeasurementMinMax {
-                    min: get_min(&data.pm25),
-                    max: get_max(&data.pm25),
-                },
-                pm10: MeasurementMinMax {
-                    min: get_min(&data.pm10),
-                    max: get_max(&data.pm10),
-                },
+        .filter_map(|x| {
+            let sensor_data = &parse_json::<SensorData>(&x.json);
+            let data = &sensor_data.data;
+
+            if sensor_data != &SensorData::default() {
+                Some(LocationMinMax {
+                    name: String::from(&x.name),
+                    start_date: sensor_data.start,
+                    end_date: sensor_data.end,
+                    pm25: MeasurementMinMax {
+                        min: get_min(&data.pm25),
+                        max: get_max(&data.pm25),
+                    },
+                    pm10: MeasurementMinMax {
+                        min: get_min(&data.pm10),
+                        max: get_max(&data.pm10),
+                    },
+                })
+            } else {
+                None
             }
         })
         .collect();
@@ -99,12 +105,12 @@ pub async fn get_weekly_stats(base_url: &str) -> WeeklyStats {
         start: locations
             .iter()
             .min_by_key(|x| x.start_date)
-            .unwrap()
+            .unwrap_or(&LocationMinMax::default())
             .start_date,
         end: locations
             .iter()
             .max_by_key(|x| x.end_date)
-            .unwrap()
+            .unwrap_or(&LocationMinMax::default())
             .end_date,
         locations,
     }
@@ -117,7 +123,7 @@ mod tests {
     use serde_json::json;
 
     #[tokio::test]
-    async fn get_weekly_stats_when_valid_data_is_fetched_then_returns_correct_result() {
+    async fn get_weekly_stats_when_valid_data_is_fetched_then_returns_result() {
         let mut server = mockito::Server::new_async().await;
         let url = server.url();
 
@@ -126,6 +132,7 @@ mod tests {
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(json!([{"description": "foobar", "path": "/foo/bar"}]).to_string())
+            .expect(1)
             .create_async()
             .await;
 
@@ -134,6 +141,7 @@ mod tests {
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(json!({"start": 1, "end": 2, "data":{"pm10":{"1": 10.5, "2": 14.5}, "pm25":{"1": 13.2, "2": 3.4}}}).to_string())
+            .expect(1)
             .create_async().await;
 
         let result = get_weekly_stats(&url).await;
@@ -151,5 +159,64 @@ mod tests {
         assert_eq!(first_location.pm10.max, 14.5);
         assert_eq!(first_location.pm25.min, 3.4);
         assert_eq!(first_location.pm25.max, 13.2);
+    }
+
+    #[tokio::test]
+    async fn get_weekly_stats_when_invalid_map_data_is_fetched_then_returns_empty_result() {
+        let mut server = mockito::Server::new_async().await;
+        let url = server.url();
+
+        let mock_data_json = server
+            .mock("GET", "/map/data.json")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(json!([{"description": "foobar"}]).to_string())
+            .expect(1)
+            .create_async()
+            .await;
+
+        let mock_graph_data_json = server
+            .mock("GET", mockito::Matcher::Any)
+            .expect(0)
+            .create_async()
+            .await;
+
+        let result = get_weekly_stats(&url).await;
+
+        mock_data_json.assert_async().await;
+        mock_graph_data_json.assert_async().await;
+
+        assert_eq!(result, WeeklyStats::default());
+    }
+
+    #[tokio::test]
+    async fn get_weekly_stats_when_invalid_graph_data_is_fetched_then_returns_empty_result() {
+        let mut server = mockito::Server::new_async().await;
+        let url = server.url();
+
+        let mock_data_json = server
+            .mock("GET", "/map/data.json")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(json!([{"description": "foobar", "path": "/foo/bar"}]).to_string())
+            .expect(1)
+            .create_async()
+            .await;
+
+        let mock_graph_data_json = server
+            .mock("GET", "/foo/bar/graph_data.json?type=pm&range=week&ma_h=24")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(json!({"start": 1}).to_string())
+            .expect(1)
+            .create_async()
+            .await;
+
+        let result = get_weekly_stats(&url).await;
+
+        mock_data_json.assert_async().await;
+        mock_graph_data_json.assert_async().await;
+
+        assert_eq!(result, WeeklyStats::default());
     }
 }

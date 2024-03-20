@@ -9,13 +9,13 @@ pub mod deserializable {
         pub description: String,
     }
 
-    #[derive(Deserialize, Debug, Default)]
+    #[derive(Deserialize, Debug, Default, PartialEq)]
     pub struct ParticlesData {
         pub pm10: HashMap<u32, Option<f32>>,
         pub pm25: HashMap<u32, Option<f32>>,
     }
 
-    #[derive(Deserialize, Debug, Default)]
+    #[derive(Deserialize, Debug, Default, PartialEq)]
     pub struct SensorData {
         pub start: u32,
         pub end: u32,
@@ -34,13 +34,13 @@ pub mod deserializable {
 pub mod serializable {
     use serde::Serialize;
 
-    #[derive(Serialize, Debug, Default)]
+    #[derive(Serialize, Debug, Default, PartialEq)]
     pub struct MeasurementMinMax {
         pub min: f32,
         pub max: f32,
     }
 
-    #[derive(Serialize, Debug, Default)]
+    #[derive(Serialize, Debug, Default, PartialEq)]
     pub struct LocationMinMax {
         pub name: String,
         pub start_date: u32,
@@ -49,7 +49,7 @@ pub mod serializable {
         pub pm10: MeasurementMinMax,
     }
 
-    #[derive(Serialize, Debug, Default)]
+    #[derive(Serialize, Debug, Default, PartialEq)]
     pub struct WeeklyStats {
         pub start: u32,
         pub end: u32,
