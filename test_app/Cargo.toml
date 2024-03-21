@@ -7,5 +7,7 @@ edition = "2021"
 
 [dependencies]
 fetch_data = { path = "../fetch_data" }
-reqwest = "0.11.25"
+lambda_runtime = "0.10.0"
+reqwest = "0.12.0"
+serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] }
