@@ -44,6 +44,7 @@ mod tests {
         ))
         .await;
 
+        assert!(r.is_ok());
         assert_eq!(
             r.unwrap(),
             json!(WeeklyStats {
@@ -65,6 +66,7 @@ mod tests {
         ))
         .await;
 
+        assert!(r.is_err());
         assert_eq!(r.err().unwrap().to_string(), "no url");
     }
 }
