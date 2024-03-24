@@ -1,4 +1,4 @@
-pub mod deserializable {
+pub mod remote_data {
     use std::collections::HashMap;
 
     use serde::Deserialize;
@@ -31,7 +31,7 @@ pub mod deserializable {
     }
 }
 
-pub mod serializable {
+pub mod output {
     use serde::Serialize;
 
     #[derive(Serialize, Debug, Default, PartialEq)]

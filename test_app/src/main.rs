@@ -22,7 +22,7 @@ async fn main() -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use json_structs::serializable::WeeklyStats;
+    use json_structs::output::WeeklyStats;
     use mockall::predicate;
     use serial_test::serial;
 

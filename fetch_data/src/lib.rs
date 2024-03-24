@@ -1,7 +1,7 @@
 use mockall::automock;
 
 mod utils {
-    use json_structs::deserializable::{parse_json, Location};
+    use json_structs::remote_data::{parse_json, Location};
     use std::cmp::Ordering;
 
     #[derive(Clone)]
@@ -75,8 +75,8 @@ mod utils {
 #[automock]
 pub mod core {
     use crate::utils::{get_max, get_min, get_sensor_raw_data};
-    use json_structs::deserializable::{parse_json, SensorData};
-    use json_structs::serializable::{LocationMinMax, MeasurementMinMax, WeeklyStats};
+    use json_structs::output::{LocationMinMax, MeasurementMinMax, WeeklyStats};
+    use json_structs::remote_data::{parse_json, SensorData};
 
     pub async fn get_weekly_stats(base_url: &str) -> WeeklyStats {
         let sensors_raw_data = get_sensor_raw_data(base_url).await;
@@ -126,7 +126,7 @@ pub mod core {
 #[cfg(test)]
 mod tests {
     use super::core::*;
-    use json_structs::serializable::WeeklyStats;
+    use json_structs::output::WeeklyStats;
     use serde_json::json;
 
     #[tokio::test]
