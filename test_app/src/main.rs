@@ -11,6 +11,10 @@ async fn run_lambda(event: LambdaEvent<Value>) -> Result<Value, Error> {
 
     let base_url = event.get("url").ok_or("no url")?;
     let result = get_weekly_stats(base_url.as_str().unwrap()).await;
+
+    let db_client = store_data::core::DynamoDBClient::connect().await;
+    store_data::core::store(&result, db_client).await?;
+
     Ok(json!(result))
 }
 

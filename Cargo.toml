@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "fetch_data", "json_structs",
+    "fetch_data", "json_structs", "store_data",
     "test_app",
 ]
 resolver = "2"

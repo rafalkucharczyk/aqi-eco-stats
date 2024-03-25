@@ -32,15 +32,15 @@ pub mod remote_data {
 }
 
 pub mod output {
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Serialize, Debug, Default, PartialEq)]
+    #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
     pub struct MeasurementMinMax {
         pub min: f32,
         pub max: f32,
     }
 
-    #[derive(Serialize, Debug, Default, PartialEq)]
+    #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
     pub struct LocationMinMax {
         pub name: String,
         pub start_date: u32,
@@ -49,7 +49,7 @@ pub mod output {
         pub pm10: MeasurementMinMax,
     }
 
-    #[derive(Serialize, Debug, Default, PartialEq)]
+    #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
     pub struct WeeklyStats {
         pub start: u32,
         pub end: u32,
