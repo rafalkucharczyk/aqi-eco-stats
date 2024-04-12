@@ -10,7 +10,6 @@ fetch_data = { path = "../fetch_data" }
 json_structs = { path = "../json_structs" }
 store_data = { path = "../store_data" }
 lambda_runtime = "0.11.1"
-mockall_double = "0.3.1"
 reqwest = "0.12.1"
 serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] }
