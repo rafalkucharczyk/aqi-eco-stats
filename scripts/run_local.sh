@@ -8,4 +8,4 @@ pushd $script_dir
 docker-compose up -d
 popd
 
-cargo lambda watch
+RUN_LOCAL=1 cargo lambda watch

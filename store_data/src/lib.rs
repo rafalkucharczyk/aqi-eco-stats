@@ -1,7 +1,7 @@
 pub mod core {
     use anyhow::Error;
     use async_trait::async_trait;
-    use aws_config::BehaviorVersion;
+    use aws_config::{BehaviorVersion, SdkConfig};
     use aws_sdk_dynamodb::types::AttributeValue;
     use json_structs::output::WeeklyStats;
     #[cfg(test)]
@@ -9,6 +9,7 @@ pub mod core {
     use serde_dynamo::to_item;
     use std::{
         collections::HashMap,
+        env,
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -34,17 +35,35 @@ pub mod core {
     }
 
     impl DynamoDBClient {
+        async fn get_sdk_config(run_local: bool) -> SdkConfig {
+            let mut sdk_config_loader = aws_config::defaults(BehaviorVersion::latest());
+            if run_local {
+                sdk_config_loader = sdk_config_loader.test_credentials();
+            }
+            sdk_config_loader.load().await
+        }
+
+        async fn get_dynamodb_config(
+            run_local: bool,
+            sdk_config: &SdkConfig,
+        ) -> aws_sdk_dynamodb::Config {
+            let mut dynamodb_config_builder = aws_sdk_dynamodb::config::Builder::from(sdk_config);
+            if run_local {
+                dynamodb_config_builder =
+                    dynamodb_config_builder.endpoint_url("http://localhost:8000")
+            }
+            dynamodb_config_builder.build()
+        }
+
         pub async fn connect() -> Self {
-            let config = aws_config::defaults(BehaviorVersion::latest())
-                .test_credentials()
-                .load()
-                .await;
-            let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config)
-                .endpoint_url("http://localhost:8000")
-                .build();
+            let run_local = env::var("RUN_LOCAL").is_ok();
+
+            let sdk_config = Self::get_sdk_config(run_local).await;
 
             DynamoDBClient {
-                client: aws_sdk_dynamodb::Client::from_conf(dynamodb_local_config),
+                client: aws_sdk_dynamodb::Client::from_conf(
+                    Self::get_dynamodb_config(run_local, &sdk_config).await,
+                ),
             }
         }
     }
