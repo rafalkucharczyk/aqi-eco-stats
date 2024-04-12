@@ -6,16 +6,24 @@ use fetch_data::core::get_weekly_stats;
 #[cfg(test)]
 use fetch_data::mock_core::get_weekly_stats;
 
+#[cfg(not(test))]
+async fn store_weekly_stats(weekly_stats: &json_structs::output::WeeklyStats) -> Result<(), Error> {
+    let db_client = store_data::core::DynamoDBClient::connect().await;
+    store_data::core::store(weekly_stats, db_client).await?;
+
+    Ok(())
+}
+
 async fn run_lambda(event: LambdaEvent<Value>) -> Result<Value, Error> {
     let (event, _context) = event.into_parts();
 
     let base_url = event.get("url").ok_or("no url")?;
-    let result = get_weekly_stats(base_url.as_str().unwrap()).await;
+    let weekly_stats = get_weekly_stats(base_url.as_str().unwrap()).await;
 
-    let db_client = store_data::core::DynamoDBClient::connect().await;
-    store_data::core::store(&result, db_client).await?;
+    #[cfg(not(test))]
+    store_weekly_stats(&weekly_stats).await?;
 
-    Ok(json!(result))
+    Ok(json!(weekly_stats))
 }
 
 #[tokio::main]
