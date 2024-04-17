@@ -7,9 +7,12 @@ use fetch_data::core::get_weekly_stats;
 use fetch_data::mock_core::get_weekly_stats;
 
 #[cfg(not(test))]
-async fn store_weekly_stats(weekly_stats: &json_structs::output::WeeklyStats) -> Result<(), Error> {
+async fn store_weekly_stats(
+    url: &str,
+    weekly_stats: &json_structs::output::WeeklyStats,
+) -> Result<(), Error> {
     let db_client = store_data::core::DynamoDBClient::connect().await;
-    store_data::core::store(weekly_stats, db_client).await?;
+    store_data::core::store(url, weekly_stats, db_client).await?;
 
     Ok(())
 }
@@ -17,11 +20,13 @@ async fn store_weekly_stats(weekly_stats: &json_structs::output::WeeklyStats) ->
 async fn run_lambda(event: LambdaEvent<Value>) -> Result<Value, Error> {
     let (event, _context) = event.into_parts();
 
-    let base_url = event.get("url").ok_or("no url")?;
-    let weekly_stats = get_weekly_stats(base_url.as_str().unwrap()).await;
+    let base_url_json = event.get("url").ok_or("no url")?;
+    let base_url = base_url_json.as_str().unwrap();
+
+    let weekly_stats = get_weekly_stats(base_url).await;
 
     #[cfg(not(test))]
-    store_weekly_stats(&weekly_stats).await?;
+    store_weekly_stats(base_url, &weekly_stats).await?;
 
     Ok(json!(weekly_stats))
 }

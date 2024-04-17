@@ -18,16 +18,17 @@ pub mod core {
     #[cfg_attr(test, automock)]
     #[async_trait]
     pub trait StoreWeeklyStats {
-        async fn put_to_db(&self, item: DbItem) -> anyhow::Result<()>;
+        async fn put_to_db(&self, url: &str, item: DbItem) -> anyhow::Result<()>;
     }
 
     pub async fn store(
+        url: &str,
         weekly_stats: &WeeklyStats,
         store: impl StoreWeeklyStats,
     ) -> anyhow::Result<()> {
         let item = to_item(weekly_stats)?;
 
-        store.put_to_db(Some(item)).await
+        store.put_to_db(url, Some(item)).await
     }
 
     pub struct DynamoDBClient {
@@ -70,12 +71,14 @@ pub mod core {
 
     #[async_trait]
     impl StoreWeeklyStats for DynamoDBClient {
-        async fn put_to_db(&self, item: DbItem) -> anyhow::Result<()> {
+        async fn put_to_db(&self, url: &str, item: DbItem) -> anyhow::Result<()> {
+            let env_type = env::var("ENV_TYPE").unwrap_or("dev".to_string());
             let request = self
                 .client
                 .put_item()
-                .table_name("stats")
+                .table_name(format!("stats-{}", env_type))
                 .item("data", AttributeValue::M(item.unwrap()))
+                .item("url", AttributeValue::S(url.to_string()))
                 .item(
                     "time",
                     AttributeValue::N(
@@ -109,6 +112,7 @@ mod tests {
     #[tokio::test]
     async fn store_when_empty_weekly_stats_given_then_puts_to_db_zeroed_values() {
         let mut mock = MockStoreWeeklyStats::new();
+        let test_url = "some_url";
         let db_item = HashMap::from([
             ("locations".into(), AttributeValue::L([].to_vec())),
             ("start".into(), AttributeValue::N("0".into())),
@@ -116,16 +120,17 @@ mod tests {
         ]);
 
         mock.expect_put_to_db()
-            .with(predicate::eq(Some(db_item)))
-            .returning(|_x| Ok(()));
+            .with(predicate::eq(test_url), predicate::eq(Some(db_item)))
+            .returning(|_url, _item| Ok(()));
 
-        let result = store(&WeeklyStats::default(), mock).await;
+        let result = store(test_url, &WeeklyStats::default(), mock).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn store_when_weekly_stats_given_then_puts_to_db_corresponding_values() {
         let mut mock_store = MockStoreWeeklyStats::new();
+        let test_url = "some_url";
         let db_item = HashMap::from([
             (
                 "locations".into(),
@@ -158,8 +163,8 @@ mod tests {
 
         mock_store
             .expect_put_to_db()
-            .with(predicate::eq(Some(db_item)))
-            .returning(|_x| Ok(()));
+            .with(predicate::eq(test_url), predicate::eq(Some(db_item)))
+            .returning(|_url, _item| Ok(()));
 
         let weekly_stats = WeeklyStats {
             start: 111,
@@ -173,7 +178,7 @@ mod tests {
             }]),
         };
 
-        let result = store(&weekly_stats, mock_store).await;
+        let result = store(test_url, &weekly_stats, mock_store).await;
         assert!(result.is_ok());
     }
 }
