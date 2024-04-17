@@ -1,4 +1,4 @@
-name: Cargo Build & Test
+name: Build and deploy
 
 on:
   push:
@@ -8,11 +8,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
-    name: Verify ${{ github.sha }}
+  build_and_unit_test:
+    name: Build and unit test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: cargo build
+      - name: Unit test
+        run: cargo test
+
+  deploy_dev:
+    name: Deploy to dev environment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          cargo build
-          cargo test
+      - uses: goto-bus-stop/setup-zig@v2
+      - uses: jaxxstorm/action-install-gh-release@v1
+        with:
+          repo: cargo-lambda/cargo-lambda
+          platform: linux
+          arch: x86_64
+      - env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+      - run: ./scripts/deploy.sh

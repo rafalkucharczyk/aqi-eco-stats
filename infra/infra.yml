@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template with scheduled lambda storing data in DynamoDB
+
+Parameters:
+  EnvironmentType:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+    Description: The environment type (dev or prod)
+
+Resources:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !If [IsProd, "stats-prod", "stats-dev"]
+      AttributeDefinitions:
+        - AttributeName: time
+          AttributeType: N
+      KeySchema:
+        - AttributeName: time
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: !If [IsProd, 10, 5]
+        WriteCapacityUnits: !If [IsProd, 10, 5]
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !If [IsProd, "aqi-eco-stats-prod-lambda-bucket", "aqi-eco-stats-dev-lambda-bucket"]
+        S3Key: "fetch-and-store/bootstrap.zip"
+      Runtime: provided.al2
+      Architectures:
+        - arm64
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          ENV_TYPE:
+            Fn::If:
+              - IsProd
+              - "prod"
+              - "dev"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaDynamoDBAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt DynamoDBTable.Arn
+
+  GetCity1DataScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 0 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LambdaFunction.Arn
+          Id: "GetCity1DataDaily"
+          Input: '{"url": "https://trzebnica.aqi.eco"}'
+
+  GetCity2DataScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 0 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LambdaFunction.Arn
+          Id: "GetCity2DataDaily"
+          Input: '{"url": "https://eko.edial.pl"}'
+
+  LambdaInvokePermissionForEvents:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: events.amazonaws.com
+
+Outputs:
+  DynamoDBTableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt DynamoDBTable.Arn
+
+Conditions:
+  IsProd: !Equals [!Ref EnvironmentType, prod]
