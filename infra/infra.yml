@@ -73,7 +73,7 @@ Resources:
       Targets:
         - Arn: !GetAtt LambdaFunction.Arn
           Id: "GetCity1DataDaily"
-          Input: '{"url": "https://trzebnica.aqi.eco"}'
+          Input: '{"url": "https://trzebnica.aqi.eco/pl"}'
 
   GetCity2DataScheduledRule:
     Type: AWS::Events::Rule
@@ -85,12 +85,21 @@ Resources:
           Id: "GetCity2DataDaily"
           Input: '{"url": "https://eko.edial.pl"}'
 
-  LambdaInvokePermissionForEvents:
+  LambdaInvokePermissionForCity1Event:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt LambdaFunction.Arn
       Principal: events.amazonaws.com
+      SourceArn: !GetAtt GetCity1DataScheduledRule.Arn
+
+  LambdaInvokePermissionForCity2Event:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt GetCity2DataScheduledRule.Arn
 
 Outputs:
   DynamoDBTableArn:
