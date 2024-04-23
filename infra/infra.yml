@@ -7,6 +7,9 @@ Parameters:
     Default: dev
     AllowedValues: [dev, prod]
     Description: The environment type (dev or prod)
+  FetchAndStoreLambdaFile:
+    Type: String
+    Description: Path to fetch and store lambda within S3 bucket
 
 Resources:
   DynamoDBTable:
@@ -30,7 +33,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         S3Bucket: !If [IsProd, "aqi-eco-stats-prod-lambda-bucket", "aqi-eco-stats-dev-lambda-bucket"]
-        S3Key: "fetch-and-store/bootstrap.zip"
+        S3Key: !Ref FetchAndStoreLambdaFile
       Runtime: provided.al2
       Architectures:
         - arm64
