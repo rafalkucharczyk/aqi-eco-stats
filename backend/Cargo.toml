@@ -2,6 +2,6 @@
 
 members = [
     "fetch_data", "json_structs", "store_data",
-    "test_app",
+    "lambda_fetch_and_store",
 ]
 resolver = "2"
